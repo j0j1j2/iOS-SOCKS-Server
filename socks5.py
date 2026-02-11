@@ -57,6 +57,19 @@ def is_globally_routable(ipv6_address):
     return True
 
 
+def is_routable_interface(interface_name):
+    non_routable_interface_prefixes = [
+        "ipsec",
+        "awdl",
+        "llw",
+        "nan",
+        "rd",
+    ]
+    return not any(
+        interface_name.startswith(prefix) for prefix in non_routable_interface_prefixes
+    )
+
+
 DEFAULT_RESOLVERS = [
     "1.0.0.1",
     "1.1.1.1",
@@ -154,7 +167,7 @@ try:
                 iface
                 for iface in iftypes["cell"]
                 if iface.addr.family == socket.AF_INET
-                and not iface.addr.address.startswith("192.0.0.")
+                and is_routable_interface(iface.name)
             ),
             None,
         )
@@ -178,6 +191,7 @@ try:
                 and iface.addr.address
                 and (is_globally_routable(iface.addr.address) if not is_vpn else True)
                 and iface.name == iface_ipv4.name
+                and is_routable_interface(iface.name)
             ]
 
             # Select the last IPv6 address to select the temporary address for reduced tracking
@@ -191,6 +205,7 @@ try:
                 if iface.addr.family == socket.AF_INET6
                 and iface.addr.address
                 and is_globally_routable(iface.addr.address)
+                and is_routable_interface(iface.name)
             ]
 
             # Select the last IPv6 address to select the temporary address for reduced tracking
