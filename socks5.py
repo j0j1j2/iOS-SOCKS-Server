@@ -150,7 +150,12 @@ try:
 
     if iftypes["cell"]:
         iface_ipv4 = next(
-            (iface for iface in iftypes["cell"] if iface.addr.family == socket.AF_INET),
+            (
+                iface
+                for iface in iftypes["cell"]
+                if iface.addr.family == socket.AF_INET
+                and not iface.addr.address.startswith("192.0.0.")
+            ),
             None,
         )
         iface_ipv6 = None
