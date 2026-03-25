@@ -232,7 +232,8 @@ class ServerManager:
                 self._socks_task, self._http_task, return_exceptions=True
             )
 
-        self._loop.create_task(_serve())
+        # Schedule _serve() to run once the loop starts, then run the loop
+        self._loop.call_soon(lambda: asyncio.ensure_future(_serve(), loop=self._loop))
         self._loop.run_forever()
 
     def _run_wpad(self):

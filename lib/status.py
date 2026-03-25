@@ -105,11 +105,12 @@ class StatusMonitor(TrafficStats, logging.Handler):
             self.num_connections -= 1
 
     def emit(self, record: logging.LogRecord) -> None:
-        self.messages.append(self.format(record))
-        if len(self.messages) > 5:
-            self.messages = self.messages[-5:]
-        if record.levelno >= logging.ERROR:
-            self.num_errors += 1
+        with self._lock:
+            self.messages.append(self.format(record))
+            if len(self.messages) > 5:
+                self.messages = self.messages[-5:]
+            if record.levelno >= logging.ERROR:
+                self.num_errors += 1
 
     def get_snapshot(self) -> dict:
         """Return a frozen snapshot of current stats for the UI to read.
