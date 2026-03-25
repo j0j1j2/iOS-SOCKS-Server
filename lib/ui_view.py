@@ -1,5 +1,4 @@
 import sys
-import dialogs
 
 from lib.interfaces import get_labeled_interfaces, get_default_selections
 
@@ -7,6 +6,7 @@ IS_PYTHONISTA = "Pythonista" in sys.executable
 
 if IS_PYTHONISTA:
     import ui
+    import dialogs
     import console
     from objc_util import on_main_thread
 
@@ -210,14 +210,3 @@ class ProxyUIView(ui.View):
         if snap["errors"]:
             self._log_label.text += f"\nErrors: {snap['errors']}"
 
-    @property
-    def proxy_address(self):
-        return self._proxy_iface[1].addr.address if self._proxy_iface else None
-
-    @property
-    def connect_address(self):
-        return self._connect_iface[1].addr.address if self._connect_iface else None
-
-    @property
-    def connect_iface_name(self):
-        return self._connect_iface[1].name if self._connect_iface else None

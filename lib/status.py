@@ -140,30 +140,29 @@ class StatusMonitor(TrafficStats, logging.Handler):
 
             print(self.banner)
 
-            inbound_average, inbound_total = self.inbound.update()
-            outbound_average, outbound_total = self.outbound.update()
+            snap = self.get_snapshot()
             megabit = 1024 * 1024 / 8
             megabyte = 1024 * 1024
 
             # Print the table
             print(f"{'Direction':<12} | {'Traffic (Mbps)':<15}")
             print(f"{'-'*12} | {'-'*15}")
-            print(f"{'In':<12} | {inbound_average / megabit:<15.2f}")
-            print(f"{'Out':<12} | {outbound_average / megabit:<15.2f}")
+            print(f"{'In':<12} | {snap['inbound_speed'] / megabit:<15.2f}")
+            print(f"{'Out':<12} | {snap['outbound_speed'] / megabit:<15.2f}")
             # Print a blank line
             print()
-            print(f"{'Connections:':<12} {self.num_connections:>6}")
-            print(f"{'Total In:':<12} {inbound_total / megabyte:>6.2f} MB")
-            print(f"{'Total Out:':<12} {outbound_total / megabyte:>6.2f} MB")
+            print(f"{'Connections:':<12} {snap['connections']:>6}")
+            print(f"{'Total In:':<12} {snap['inbound_total'] / megabyte:>6.2f} MB")
+            print(f"{'Total Out:':<12} {snap['outbound_total'] / megabyte:>6.2f} MB")
             print(
-                f"{'Total:':<12} {(inbound_total + outbound_total) / megabyte:>6.2f} MB"
+                f"{'Total:':<12} {(snap['inbound_total'] + snap['outbound_total']) / megabyte:>6.2f} MB"
             )
             print()
-            if self.num_errors:
-                print(f"Errors: {self.num_errors}")
-            if self.messages:
+            if snap["errors"]:
+                print(f"Errors: {snap['errors']}")
+            if snap["messages"]:
                 print("Last 5 log messages:")
-                for msg in self.messages:
+                for msg in snap["messages"]:
                     print(f"    {msg}")
 
 

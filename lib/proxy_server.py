@@ -109,6 +109,7 @@ class AsyncProxyServer:
         self.resolver = resolver or Resolver()
         self.connect_host_ipv4 = connect_host_ipv4
         self.connect_host_ipv6 = connect_host_ipv6
+        self._server = None
         self.resolver_source: str | None = None
         if self.connect_host_ipv4 is not None or self.connect_host_ipv6 is not None:
             resolver_afs = [af_for_address(ns) for ns in self.resolver.nameservers]
@@ -145,7 +146,7 @@ class AsyncProxyServer:
         await self._server.serve_forever()
 
     async def stop(self) -> None:
-        if hasattr(self, '_server') and self._server is not None:
+        if self._server is not None:
             self._server.close()
             await self._server.wait_closed()
             self._server = None

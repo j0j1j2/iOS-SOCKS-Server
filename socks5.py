@@ -233,7 +233,7 @@ class ServerManager:
             )
 
         # Schedule _serve() to run once the loop starts, then run the loop
-        self._loop.call_soon(lambda: asyncio.ensure_future(_serve(), loop=self._loop))
+        self._loop.call_soon(lambda: asyncio.ensure_future(_serve()))
         self._loop.run_forever()
 
     def _run_wpad(self):
@@ -255,7 +255,10 @@ class ServerManager:
                         task.cancel()
 
             future = asyncio.run_coroutine_threadsafe(_stop_all(), self._loop)
-            future.result(timeout=5)
+            try:
+                future.result(timeout=5)
+            except Exception:
+                logging.warning("Server stop timed out; forcing shutdown")
             self._loop.call_soon_threadsafe(self._loop.stop)
             self._thread.join(timeout=5)
 
