@@ -4,6 +4,7 @@
 import asyncio
 import logging
 import sys
+import threading
 import time
 
 if "Pythonista" in sys.executable:
@@ -85,18 +86,23 @@ class StatusMonitor(TrafficStats, logging.Handler):
         self.num_connections = 0
         self.messages: list[str] = []
         self.num_errors = 0
+        self._lock = threading.Lock()
 
     def add_inbound(self, nbytes: int) -> None:
-        self.inbound.add(nbytes)
+        with self._lock:
+            self.inbound.add(nbytes)
 
     def add_outbound(self, nbytes: int) -> None:
-        self.outbound.add(nbytes)
+        with self._lock:
+            self.outbound.add(nbytes)
 
     def add_connection(self) -> None:
-        self.num_connections += 1
+        with self._lock:
+            self.num_connections += 1
 
     def remove_connection(self) -> None:
-        self.num_connections -= 1
+        with self._lock:
+            self.num_connections -= 1
 
     def emit(self, record: logging.LogRecord) -> None:
         self.messages.append(self.format(record))
@@ -104,6 +110,22 @@ class StatusMonitor(TrafficStats, logging.Handler):
             self.messages = self.messages[-5:]
         if record.levelno >= logging.ERROR:
             self.num_errors += 1
+
+    def get_snapshot(self) -> dict:
+        """Return a frozen snapshot of current stats for the UI to read.
+        Thread-safe: uses a lock to prevent torn reads from ThroughputTracker."""
+        with self._lock:
+            inbound_average, inbound_total = self.inbound.update()
+            outbound_average, outbound_total = self.outbound.update()
+            return {
+                "inbound_speed": inbound_average,
+                "inbound_total": inbound_total,
+                "outbound_speed": outbound_average,
+                "outbound_total": outbound_total,
+                "connections": self.num_connections,
+                "errors": self.num_errors,
+                "messages": list(self.messages),
+            }
 
     async def render_forever(self) -> None:
         while True:
