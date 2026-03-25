@@ -31,7 +31,15 @@ def _make_button(title, frame, action):
 
 
 class ProxyUIView(ui.View):
-    def __init__(self, stats, start_server_cb, stop_server_cb, socks_port=9876, http_port=9877, wpad_port=8088):
+    def __init__(
+        self,
+        stats,
+        start_server_cb,
+        stop_server_cb,
+        socks_port=9876,
+        http_port=9877,
+        wpad_port=8088,
+    ):
         super().__init__()
         self.name = "SOCKS5 Proxy"
         self.background_color = "white"
@@ -72,58 +80,78 @@ class ProxyUIView(ui.View):
                 self._connect_iface = labeled[0]
 
     def _build_ui(self):
-        w = self.width
-        y = 10
         pad = 10
 
         # --- Proxy access row ---
-        self._proxy_label = _make_label("", (pad, y, w - 100, 36))
+        self._proxy_label = _make_label("", (0, 0, 100, 36))
         self._update_proxy_label()
         self.add_subview(self._proxy_label)
 
-        self._proxy_btn = _make_button("변경", (w - 80, y, 70, 36), self._change_proxy)
+        self._proxy_btn = _make_button("변경", (0, 0, 70, 36), self._change_proxy)
         self.add_subview(self._proxy_btn)
-        y += 44
 
         # --- Connect row ---
-        self._connect_label = _make_label("", (pad, y, w - 100, 36))
+        self._connect_label = _make_label("", (0, 0, 100, 36))
         self._update_connect_label()
         self.add_subview(self._connect_label)
 
-        self._connect_btn = _make_button("변경", (w - 80, y, 70, 36), self._change_connect)
+        self._connect_btn = _make_button("변경", (0, 0, 70, 36), self._change_connect)
         self.add_subview(self._connect_btn)
-        y += 52
 
         # --- Separator ---
-        sep = ui.View(frame=(pad, y, w - 2 * pad, 1))
-        sep.background_color = "#cccccc"
-        self.add_subview(sep)
-        y += 10
+        self._sep = ui.View()
+        self._sep.background_color = "#cccccc"
+        self.add_subview(self._sep)
 
         # --- Status label ---
-        self._status_label = _make_label("Status: Stopped", (pad, y, w - 2 * pad, 24), font_size=16)
+        self._status_label = _make_label(
+            "Status: Stopped", (0, 0, 100, 24), font_size=16
+        )
         self.add_subview(self._status_label)
-        y += 30
 
         # --- Stats area ---
         self._stats_text = ui.TextView()
-        self._stats_text.frame = (pad, y, w - 2 * pad, 200)
         self._stats_text.editable = False
         self._stats_text.font = ("<system>", 13)
         self.add_subview(self._stats_text)
-        y += 210
 
         # --- Log area ---
-        self._log_label = _make_label("", (pad, y, w - 2 * pad, 100), font_size=11)
+        self._log_label = _make_label("", (0, 0, 100, 100), font_size=11)
         self.add_subview(self._log_label)
-        y += 110
 
         # --- Start/Restart button ---
-        self._action_btn = _make_button("Start", (pad, y, w - 2 * pad, 44), self._toggle_server)
+        self._action_btn = _make_button("Start", (0, 0, 100, 44), self._toggle_server)
         self._action_btn.background_color = "#007AFF"
         self._action_btn.tint_color = "white"
         self._action_btn.corner_radius = 8
         self.add_subview(self._action_btn)
+
+    def layout(self):
+        w = self.width
+        pad = 10
+        y = 10
+
+        self._proxy_label.frame = (pad, y, w - 100, 36)
+        self._proxy_btn.frame = (w - 80, y, 70, 36)
+        y += 44
+
+        self._connect_label.frame = (pad, y, w - 100, 36)
+        self._connect_btn.frame = (w - 80, y, 70, 36)
+        y += 52
+
+        self._sep.frame = (pad, y, w - 2 * pad, 1)
+        y += 10
+
+        self._status_label.frame = (pad, y, w - 2 * pad, 24)
+        y += 30
+
+        self._stats_text.frame = (pad, y, w - 2 * pad, 200)
+        y += 210
+
+        self._log_label.frame = (pad, y, w - 2 * pad, 100)
+        y += 110
+
+        self._action_btn.frame = (pad, y, w - 2 * pad, 44)
 
     def _update_proxy_label(self):
         display = self._proxy_iface[0] if self._proxy_iface else "None"
@@ -209,4 +237,3 @@ class ProxyUIView(ui.View):
             self._log_label.text = "Log:\n" + "\n".join(snap["messages"][-5:])
         if snap["errors"]:
             self._log_label.text += f"\nErrors: {snap['errors']}"
-
