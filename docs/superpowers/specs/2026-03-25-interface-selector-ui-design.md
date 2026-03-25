@@ -54,7 +54,12 @@ Extract the interface enumeration and classification into a reusable function th
 ```python
 def get_labeled_interfaces():
     """Return list of (display_string, iface) tuples for all routable IPv4 interfaces."""
+
+def get_default_selections(labeled_interfaces):
+    """Apply existing heuristic (bridge > en for proxy, cell/vpn for connect) and return default picks."""
 ```
+
+`USE_PHONE_VPN` is superseded by the UI's interface selection and only applies in the non-Pythonista fallback path.
 
 ### 2. UI view (`lib/ui_view.py` — new file)
 
@@ -67,11 +72,37 @@ A Pythonista `ui.View` subclass that:
 - Has a Start/Restart button
 - Keeps `console.set_idle_timer_disabled(True)` active to prevent screen from turning off
 
-### 3. Server lifecycle management (modify `socks5.py`)
+### 3. Server lifecycle management (modify `socks5.py` and `lib/proxy_server.py`)
 
 - Server start is triggered by UI button, not by script start
 - When interface is changed while running, stop current servers and restart with new settings
 - The asyncio event loop runs in a background thread; UI runs on main thread (Pythonista requirement)
+
+**Stop/restart mechanism:**
+- `AsyncProxyServer.run()` must store the `asyncio.Server` handle as `self.server` and expose a `stop()` coroutine that calls `self.server.close()` and `await self.server.wait_closed()`
+- The SOCKS, HTTP, and WPAD server references are stored in a manager object so they can be shut down and recreated
+- WPAD server gets `shutdown()` called before recreation with the new PROXY_HOST
+- In-flight connections are force-closed on restart (acceptable for a proxy; clients will reconnect)
+
+### 4. Concurrency model
+
+**Threading:**
+- Main thread: Pythonista UI event loop
+- Background thread: asyncio event loop (`threading.Thread` running `loop.run_forever()`)
+
+**Cross-thread signaling:**
+- UI → asyncio: use `loop.call_soon_threadsafe()` to schedule stop/start coroutines on the asyncio loop
+- asyncio → UI: stats are read from the main thread via a `ui.View.update()` timer
+
+**Thread safety for stats:**
+- `StatusMonitor` fields are written from asyncio coroutines and read from the UI timer
+- Use `threading.Lock` around `ThroughputTracker.update()` and the counters to prevent torn reads
+- Alternatively, since Pythonista's UI update interval is ~1s, a simple snapshot approach works: the asyncio thread periodically writes a frozen stats dict, and the UI reads it
+
+### 5. Interface refresh
+
+- Re-enumerate interfaces each time the user taps "변경" (Change), so newly connected VPNs or changed networks are visible
+- If the currently selected interface disappears, show a warning in the UI status area
 
 ### 4. StatusMonitor adaptation (modify `lib/status.py`)
 
